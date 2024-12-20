@@ -87,6 +87,34 @@ app.post('/michal-subscribe', async (req, res) => {
     }
 });
 
+app.get('/sessions', async (req, res) => {
+    try {
+        const sessions = await prisma.malewiczSession.findMany({
+            include: {
+                subscriber: true,
+            },
+        });
+        res.status(200).json(sessions);
+    } catch (error) {
+        console.error('Error fetching sessions:', error);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+});
+
+app.get('/subscribers', async (req, res) => {
+    try {
+        const subscribers = await prisma.malewiczSubscriber.findMany({
+            include: {
+                session: true,
+            },
+        });
+        res.status(200).json(subscribers);
+    } catch (error) {
+        console.error('Error fetching subscribers:', error);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+});
+
 
 app.listen(PORT, () => {
     console.log(`Server is running`);
