@@ -13,9 +13,17 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model MalewiczSubscriber {
-  id           Int      @id @default(autoincrement())
-  email        String   @unique
+model MalewiczSession {
+  id           Int                @id @default(autoincrement())
+  uniqueId     String             @unique
   scenario     String
-  subscribedAt DateTime @default(now())
+  createdAt    DateTime           @default(now())
+  subscriber   MalewiczSubscriber? @relation(fields: [subscriberId], references: [id])
+  subscriberId Int?               @unique
+}
+
+model MalewiczSubscriber {
+  id          Int              @id @default(autoincrement())
+  createdAt   DateTime         @default(now())
+  session     MalewiczSession? @relation
 }

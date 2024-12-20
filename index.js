@@ -1,6 +1,7 @@
 const express = require('express');
 const { PrismaClient } = require('@prisma/client');
 const cors = require('cors');
+const { v4: uuidv4 } = require('uuid');
 require('dotenv').config();
 
 const app = express();
@@ -19,29 +20,69 @@ app.use(cors({
 
 app.use(express.json());
 
-app.post('/michal-subscribe', async (req, res) => {
-    const { email, scenario } = req.body;
+app.post('/michal-session', async (req, res) => {
+    const { scenario } = req.body;
 
-    if (!email || !scenario) {
-        return res.status(400).json({ error: 'Email and scenario are required' });
+    if (!scenario) {
+        return res.status(400).json({ error: 'Scenario is required' });
     }
 
     try {
-        const existingSubscriber = await prisma.malewiczSubscriber.findUnique({
-            where: { email },
+        const uniqueId = uuidv4();
+
+        const session = await prisma.malewiczSession.create({
+            data: {
+                uniqueId,
+                scenario,
+            },
         });
 
-        if (existingSubscriber) {
-            return res.status(409).json({ message: 'Email is already subscribed' });
+        res.status(201).json({
+            message: 'Session logged successfully',
+            sessionId: session.id,
+            uniqueId: session.uniqueId,
+        });
+    } catch (error) {
+        console.error('Error logging session:', error);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+});
+
+app.post('/michal-subscribe', async (req, res) => {
+    const { uniqueId } = req.body;
+
+    if (!uniqueId) {
+        return res.status(400).json({ error: 'Unique ID is required' });
+    }
+
+    try {
+        const session = await prisma.malewiczSession.findUnique({
+            where: { uniqueId },
+            include: { subscriber: true },
+        });
+
+        if (!session) {
+            return res.status(404).json({ error: 'Session not found' });
         }
 
-        await prisma.malewiczSubscriber.create({
-            data: { email, scenario },
+        if (session.subscriber) {
+            return res.status(409).json({ error: 'This session already has a subscriber' });
+        }
+
+        const subscriber = await prisma.malewiczSubscriber.create({
+            data: {
+                session: {
+                    connect: { id: session.id },
+                },
+            },
         });
 
-        res.status(201).json({ message: 'Subscription successful' });
+        res.status(201).json({ message: 'Subscription logged successfully', subscriber });
     } catch (error) {
-        console.error('Error processing subscription:', error);
+        console.error('Error logging subscription:', error);
+        if (error.code === 'P2002') {
+            return res.status(409).json({ error: 'Email already subscribed' });
+        }
         res.status(500).json({ error: 'Internal server error' });
     }
 });
