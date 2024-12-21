@@ -55,24 +55,37 @@ app.post('/michal-session', async (req, res) => {
 });
 
 app.post('/michal-subscribe', async (req, res) => {
-    const { uniqueId } = req.body;
+    const { uniqueId, scenario } = req.body;
 
-    if (!uniqueId) {
-        return res.status(400).json({ error: 'Unique ID is required' });
+    if (!scenario && !uniqueId) {
+        return res.status(400).json({ error: 'Either uniqueId or scenario is required' });
     }
 
     try {
-        const session = await prisma.malewiczSession.findUnique({
-            where: { uniqueId },
-            include: { subscriber: true },
-        });
+        let session = null;
 
-        if (!session) {
-            return res.status(404).json({ error: 'Session not found' });
+        if (uniqueId) {
+            session = await prisma.malewiczSession.findUnique({
+                where: { uniqueId },
+                include: { subscriber: true },
+            });
+
+            if (session && session.subscriber) {
+                return res.status(409).json({ error: 'This session already has a subscriber' });
+            }
         }
 
-        if (session.subscriber) {
-            return res.status(409).json({ error: 'This session already has a subscriber' });
+        if (!session && scenario) {
+            session = await prisma.malewiczSession.create({
+                data: {
+                    uniqueId: uuidv4(),
+                    scenario,
+                },
+            });
+        }
+
+        if (!session) {
+            return res.status(400).json({ error: 'Unable to create or find session' });
         }
 
         const subscriber = await prisma.malewiczSubscriber.create({
@@ -83,7 +96,10 @@ app.post('/michal-subscribe', async (req, res) => {
             },
         });
 
-        res.status(201).json({ message: 'Subscription logged successfully', subscriber });
+        res.status(201).json({
+            message: 'Subscription logged successfully',
+            subscriber,
+        });
     } catch (error) {
         console.error('Error logging subscription:', error);
         if (error.code === 'P2002') {
