@@ -17,6 +17,7 @@ const allowedOrigins = [
 
 app.use(cors({
     origin: (origin, callback) => {
+        console.log(`Request received from origin: ${origin}`);
         if (!origin || origin === 'null' || allowedOrigins.includes(origin)) {
             callback(null, true);
         } else {
@@ -28,9 +29,6 @@ app.use(cors({
 app.use(express.json());
 
 app.post('/michal-session', async (req, res) => {
-    console.log(`Request received from origin: ${req.headers.origin || 'Unknown Origin'}`);
-    console.log(`Request referer: ${req.headers.referer || 'No Referer'}`);
-    console.log(`Request URL: ${req.url}`);
     const { scenario } = req.body;
 
     if (!scenario) {
