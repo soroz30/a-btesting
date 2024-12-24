@@ -139,6 +139,88 @@ app.get('/subscribers', async (req, res) => {
     }
 });
 
+app.post('/wave-session', async (req, res) => {
+    const { scenario } = req.body;
+
+    if (!scenario) {
+        return res.status(400).json({ error: 'Scenario is required' });
+    }
+
+    try {
+        const uniqueId = uuidv4();
+
+        const session = await prisma.waveSession.create({
+            data: {
+                uniqueId,
+                scenario,
+            },
+        });
+
+        res.status(201).json({
+            message: 'Session logged successfully',
+            sessionId: session.id,
+            uniqueId: session.uniqueId,
+        });
+    } catch (error) {
+        console.error('Error logging session:', error);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+});
+
+app.post('/wave-subscribe', async (req, res) => {
+    const { uniqueId, scenario } = req.body;
+
+    if (!scenario && !uniqueId) {
+        return res.status(400).json({ error: 'Either uniqueId or scenario is required' });
+    }
+
+    try {
+        let session = null;
+
+        if (uniqueId) {
+            session = await prisma.waveSession.findUnique({
+                where: { uniqueId },
+                include: { subscriber: true },
+            });
+
+            if (session && session.subscriber) {
+                return res.status(409).json({ error: 'This session already has a subscriber' });
+            }
+        }
+
+        if (!session && scenario) {
+            session = await prisma.waveSession.create({
+                data: {
+                    uniqueId: uuidv4(),
+                    scenario,
+                },
+            });
+        }
+
+        if (!session) {
+            return res.status(400).json({ error: 'Unable to create or find session' });
+        }
+
+        const subscriber = await prisma.waveSubscriber.create({
+            data: {
+                session: {
+                    connect: { id: session.id },
+                },
+            },
+        });
+
+        res.status(201).json({
+            message: 'Subscription logged successfully',
+            subscriber,
+        });
+    } catch (error) {
+        console.error('Error logging subscription:', error);
+        if (error.code === 'P2002') {
+            return res.status(409).json({ error: 'Email already subscribed' });
+        }
+        res.status(500).json({ error: 'Internal server error' });
+    }
+});
 
 app.listen(PORT, () => {
     console.log(`Server is running`);

@@ -27,3 +27,18 @@ model MalewiczSubscriber {
   createdAt   DateTime         @default(now())
   session     MalewiczSession? @relation
 }
+
+model WaveSession {
+  id           Int                @id @default(autoincrement())
+  uniqueId     String             @unique
+  scenario     String
+  createdAt    DateTime           @default(now())
+  subscriber   WaveSubscriber?    @relation(fields: [subscriberId], references: [id])
+  subscriberId Int?               @unique
+}
+
+model WaveSubscriber {
+  id          Int              @id @default(autoincrement())
+  createdAt   DateTime         @default(now())
+  session     WaveSession?     @relation
+}
