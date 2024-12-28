@@ -141,7 +141,6 @@ app.get('/subscribers', async (req, res) => {
 });
 
 app.post('/wave-session', async (req, res) => {
-    console.log(11)
     const { scenario } = req.body;
 
     if (!scenario) {
