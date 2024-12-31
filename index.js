@@ -251,6 +251,89 @@ app.get('/wave-subscribers', async (req, res) => {
     }
 });
 
+app.get('/malewicz-stats', async (req, res) => {
+    try {
+        const totalSessions = await prisma.malewiczSession.count();
+        const totalSubscribers = await prisma.malewiczSubscriber.count();
+
+        const scenarioA = await prisma.malewiczSession.count({
+            where: { scenario: 'A' },
+        });
+        const scenarioB = await prisma.malewiczSession.count({
+            where: { scenario: 'B' },
+        });
+
+        const scenarioAClicks = await prisma.malewiczSubscriber.count({
+            where: {
+                session: {
+                    scenario: 'A',
+                },
+            },
+        });
+        const scenarioBClicks = await prisma.malewiczSubscriber.count({
+            where: {
+                session: {
+                    scenario: 'B',
+                },
+            },
+        });
+
+        res.status(200).json({
+            totalViews: totalSessions,
+            totalClicks: totalSubscribers,
+            scenarioAViews: scenarioA,
+            scenarioBViews: scenarioB,
+            scenarioAClicks: scenarioAClicks,
+            scenarioBClicks: scenarioBClicks,
+        });
+    } catch (error) {
+        console.error('Error fetching stats:', error);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+});
+
+app.get('/wave-stats', async (req, res) => {
+    try {
+        const totalSessions = await prisma.waveSession.count();
+        const totalSubscribers = await prisma.waveSubscriber.count();
+
+        const scenarioA = await prisma.waveSession.count({
+            where: { scenario: 'A' },
+        });
+        const scenarioB = await prisma.waveSession.count({
+            where: { scenario: 'B' },
+        });
+
+        const scenarioAClicks = await prisma.waveSubscriber.count({
+            where: {
+                session: {
+                    scenario: 'A',
+                },
+            },
+        });
+        const scenarioBClicks = await prisma.waveSubscriber.count({
+            where: {
+                session: {
+                    scenario: 'B',
+                },
+            },
+        });
+
+        res.status(200).json({
+            totalViews: totalSessions,
+            totalClicks: totalSubscribers,
+            scenarioAViews: scenarioA,
+            scenarioBViews: scenarioB,
+            scenarioAClicks: scenarioAClicks,
+            scenarioBClicks: scenarioBClicks,
+        });
+    } catch (error) {
+        console.error('Error fetching stats:', error);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+});
+
+
 app.listen(PORT, () => {
     console.log(`Server is running`);
 });
